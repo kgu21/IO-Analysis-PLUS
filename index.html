@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>IO-Analysis-PLUS: 2023 산업연관표 분석 웹앱</title><link href="./style.css" rel="stylesheet"/><script defer src="./app.js"></script></head>
 <body>
-<header><p id="subtitle">2023 · 생산자가격 · 분류를 선택해 불러오세요</p><h1>과제물1: 산업연관표분석 웹앱</h1><p id="lead">대분류·중분류·소분류·기본부문 투입산출표 탐색, 수요충격 시뮬레이션, 전·후방 연쇄효과 분석</p></header>
-<nav aria-label="주요 메뉴"><a href="#explorer">원자료 탐색</a><a href="#simulation">시뮬레이터</a><a href="#structure">산업 구조 분석</a></nav>
+<header><p id="subtitle">2023 · 생산자가격 · 분류를 선택해 불러오세요</p><h1>과제물1: 산업연관표분석 웹앱</h1><p id="lead">대분류·중분류·소분류·기본부문 투입산출표 탐색, 수요충격 시뮬레이션, 수요 항목별 수입·부가가치 분석, 전·후방 연쇄효과 분석</p></header>
+<nav aria-label="주요 메뉴"><a href="#explorer">원자료 탐색</a><a href="#simulation">시뮬레이터</a><a href="#demand">수요 항목별 분석</a><a href="#structure">산업 구조 분석</a></nav>
 <main>
 <aside aria-label="분석 준비 상태" class="loading-status"><p id="status" role="status">분류를 고르고 "불러오기" 버튼을 눌러 자료를 불러오세요. (처음에는 Python 환경 준비로 시간이 걸릴 수 있습니다.)</p><details><summary>계수 검증 결과</summary><pre id="validation">아직 자료를 불러오지 않았습니다.</pre></details></aside>
 
@@ -14,7 +14,20 @@
 
 <section id="simulation"><h2>2. 국내 생산물 최종수요 증가 시뮬레이션</h2><p>수입 완제품 구매를 제외한 국내 생산물 최종수요 증가를 입력하세요. 여러 산업의 증가액은 합산됩니다. 현재 불러온 분류: <strong id="level-now">없음</strong></p><label>산업 검색<input disabled id="sector-search" placeholder="산업 이름 또는 코드"/></label><form id="scenario"><label>산업<select disabled id="sector" required></select></label><label>증가액 (백만원)<input disabled id="amount" min="0.01" required step="any" type="number" value="1000"/></label><p class="note">1,000백만원 = 10억원. 이번 버전은 양의 수요 증가만 지원합니다.</p><button disabled id="add">시나리오에 추가</button></form><ul id="basket"></ul><button disabled id="run">파급효과 계산</button><button id="clear">시나리오 비우기</button><p id="sim-status" role="status">시나리오를 추가하세요.</p><div hidden id="results"><div class="cards" id="cards"></div><h3>생산유발액 상위 15개 산업</h3><div id="bars"></div><button id="download">전체 산업 CSV 다운로드</button><div class="scroll"><table><caption>산업별 유발액 — 백만원, 생산유발액 내림차순</caption><thead><tr><th>코드</th><th>산업</th><th>생산</th><th>수입</th><th>부가가치</th></tr></thead><tbody id="result-rows"></tbody></table></div></div></section>
 
-<section id="structure"><h2>3. 산업 구조 분석 (유발계수·전후방 연쇄효과)</h2>
+<section id="demand"><h2>3. 수요 항목별 분석: 소비·투자·수출은 수입과 부가가치를 어떻게 만드는가</h2>
+<p>최종수요 항목(소비, 투자, 수출 등)마다 국내 생산, 수입, 부가가치를 얼마나 유발하는지 비교합니다. 금액은 백만원, 계수는 <strong>국산 최종수요 1원당 원</strong>입니다.</p>
+<ul class="note"><li><strong>부가가치유발계수</strong>: 국산 최종수요 1원 중 국내에 소득(부가가치)으로 남는 몫</li><li><strong>수입(중간재)유발계수</strong>: 국산 최종수요 1원을 만들기 위해 해외에서 들여오는 수입 중간재의 몫. 위 부가가치유발계수와 더하면 항상 1이 됩니다.</li><li><strong>공표 수입유발계수</strong>: 한국은행 표의 값으로, 분모가 수입 최종재를 포함한 최종수요이고 해당 항목이 직접 구매한 수입 완제품도 수입유발액에 포함합니다. 소비·투자 항목은 위 중간재 계수보다 크게 나옵니다.</li></ul>
+<div class="scroll" id="demand-chart" aria-label="최종수요 1원당 부가가치와 수입 중간재 막대 차트"></div>
+<button disabled id="demand-png" type="button">차트 PNG 저장</button><button disabled id="demand-csv" type="button">항목 비교표 CSV</button>
+<div class="scroll"><table><caption>최종수요 항목별 유발액(백만원)과 유발계수(원/원)</caption><thead><tr><th>항목</th><th>국산 최종수요</th><th>수입 최종수요</th><th>생산유발액</th><th>수입유발액</th><th>부가가치유발액</th><th>생산유발계수</th><th>수입(중간재)유발계수</th><th>부가가치유발계수</th><th>공표 수입유발계수</th></tr></thead><tbody id="demand-rows"></tbody></table></div>
+<h3 id="demand-detail-title">항목을 선택하면 산업별 상세가 표시됩니다.</h3>
+<label>최종수요 항목<select disabled id="demand-item"></select></label>
+<label>정렬 기준<select disabled id="demand-sort"><option value="imports">수입유발액</option><option value="production">생산유발액</option><option value="valueAdded">부가가치유발액</option></select></label>
+<div id="demand-bars"></div>
+<button disabled id="demand-detail-csv" type="button">선택 항목 산업별 CSV</button>
+<div class="scroll"><table><caption id="demand-detail-caption">산업별 유발액 — 백만원</caption><thead><tr><th>코드</th><th>산업</th><th>생산유발액</th><th>수입유발액</th><th>부가가치유발액</th></tr></thead><tbody id="demand-detail-rows"></tbody></table></div></section>
+
+<section id="structure"><h2>4. 산업 구조 분석 (유발계수·전후방 연쇄효과)</h2>
 <p>생산유발계수표의 열합·행합으로 산업별 파급력을 비교합니다. 단위는 모두 비율(원/원)입니다.</p>
 <ul class="note"><li><strong>생산유발계수</strong>: 해당 산업 최종수요 1원 증가 시 전 산업에 유발되는 생산액(열합)</li><li><strong>수입유발계수·부가가치유발계수</strong>: 같은 방식으로 유발되는 수입액·부가가치액(열합)</li><li><strong>영향력계수(후방연쇄)</strong>: 열합 ÷ 열합의 전체 평균. 1보다 크면 다른 산업에 미치는 파급이 평균 이상</li><li><strong>감응도계수(전방연쇄)</strong>: 행합 ÷ 행합의 전체 평균. 1보다 크면 다른 산업 수요 증가에 평균 이상 반응</li></ul>
 <label>유형 필터<select disabled id="kind-filter"><option value="">전체</option><option>전·후방 연쇄 모두 강함</option><option>후방 연쇄 강함(영향력 우위)</option><option>전방 연쇄 강함(감응도 우위)</option><option>전·후방 연쇄 모두 약함</option></select></label>

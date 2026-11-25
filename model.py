@@ -137,3 +137,49 @@ def analysis():
                      'valueAdded': float(colV[i]), 'influence': float(influence[i]),
                      'sensitivity': float(sensitivity[i]), 'kind': kind})
     return emit({'rows': rows})
+
+
+def demand_items():
+    """최종수요 항목(소비·투자·수출 등)별 유발액·유발계수와 산업별 상세."""
+    if not valid:
+        raise ValueError('검증된 데이터가 없습니다.')
+    need = ['최종수요 항목별 생산유발액', '최종수요 항목별 수입유발액', '최종수요 항목별 부가가치유발액',
+            'A표_국산거래표(생산자)', 'A표_수입거래표(생산자)']
+    missing = [s for s in need if s not in book]
+    if missing:
+        raise ValueError('필수 시트가 없습니다: ' + ', '.join(missing))
+
+    def index(rows):
+        ci = {clean(c): i for i, c in enumerate(rows[4]) if c is not None}
+        ri = {clean(r[0]): r for r in rows if r and r[0] is not None}
+        return ci, ri
+
+    prod, imp, vad = (book[s] for s in need[:3])
+    pci, pri = index(prod); mci, mri = index(imp); vci, vri = index(vad)
+    dci, dri = index(book[need[3]]); ici, iri = index(book[need[4]])
+    item_codes = [clean(c) for c in prod[4][2:] if c is not None]
+    code_set = set(codes)
+
+    def num(v):
+        return float(v) if isinstance(v, (int, float)) else 0.0
+
+    items, detail = [], {}
+    for ic in item_codes:
+        name = ' '.join(str(prod[5][pci[ic]] or ic).split())
+        dom = num(dri['9590'][dci[ic]]); imf = num(iri['9590'][ici[ic]])
+        P = num(pri['9819'][pci[ic]]); Mv = num(mri['9819'][mci[ic]]); Vv = num(vri['9819'][vci[ic]])
+        ok = dom > 0
+        items.append({
+            'code': ic, 'name': name, 'domestic': dom, 'imported': imf,
+            'production': P, 'imports': Mv, 'valueAdded': Vv,
+            'coefProduction': P / dom if ok else None,
+            'coefValueAdded': Vv / dom if ok else None,
+            'coefImportIntermediate': (Mv - imf) / dom if ok else None,
+            'coefImportPublished': Mv / (dom + imf) if (dom + imf) > 0 else None})
+        rows = []
+        for c, nme in zip(codes, names):
+            rows.append({'code': c, 'name': nme,
+                         'production': num(pri[c][pci[ic]]), 'imports': num(mri[c][mci[ic]]),
+                         'valueAdded': num(vri[c][vci[ic]])})
+        detail[ic] = rows
+    return emit({'items': items, 'detail': detail})

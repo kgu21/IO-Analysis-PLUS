@@ -29,6 +29,8 @@ async function handle({id,type,payload}) {
       result=py.runPython('explore(sheet_input, row_input)');
     } else if(type==='analysis') {
       result=py.runPython('analysis()');
+    } else if(type==='demand') {
+      result=py.runPython('demand_items()');
     } else {
       py.globals.set('scenario_input',JSON.stringify(payload));
       result=py.runPython('simulate(scenario_input)');
