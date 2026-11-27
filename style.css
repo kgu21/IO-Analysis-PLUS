@@ -1,4 +1,4 @@
-/* ===== IO-Analysis-PLUS 디자인: 하늘색 계열, 깔끔한 카드형 ===== */
+/* ===== IO-Analysis-PLUS: 사이드바 대시보드 레이아웃, 하늘색·남색 테마 ===== */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -7,49 +7,67 @@ body{
   margin:0;
   font-family:'Pretendard','Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
   background:#eaf4fc;
-  background-image:linear-gradient(180deg,#d7ebfb 0,#eaf4fc 380px);
   color:#16324f;
   line-height:1.7;
 }
 
-/* ----- 머리말과 메뉴 ----- */
-header{
-  background:#1565c0;
-  background-image:linear-gradient(135deg,#0f4c8a 0%,#1f7fd0 100%);
-  color:#fff;
-  padding:40px max(24px,calc((100vw - 1080px)/2)) 36px;
+/* ----- 전체 레이아웃: 왼쪽 사이드바 + 오른쪽 본문 ----- */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:272px;flex:0 0 272px;
+  background:#0f2f55;
+  background-image:linear-gradient(180deg,#0f2f55 0%,#14406f 100%);
+  color:#e6f0fb;
+  padding:22px 16px;
+  position:sticky;top:0;height:100vh;overflow:auto;
+  display:flex;flex-direction:column;gap:22px;
 }
-header h1{font-size:clamp(1.7rem,4vw,2.6rem);margin:6px 0 8px;letter-spacing:-.01em}
-header p{margin:0}
-#subtitle{font-size:.95rem;font-weight:600;letter-spacing:.04em;color:#cfe6fa}
-#lead{color:#e6f2fc}
+.content{flex:1;min-width:0}
+.inner{max-width:1120px;margin:0 auto;padding:24px}
 
-nav{
-  display:flex;gap:6px;flex-wrap:wrap;
-  padding:10px max(24px,calc((100vw - 1080px)/2));
-  background:rgba(255,255,255,.96);
-  border-bottom:1px solid #c5dcf0;
-  position:sticky;top:0;z-index:20;
+/* ----- 사이드바 ----- */
+.brand{display:flex;align-items:center;gap:12px;padding:4px 6px}
+.brand-mark{
+  display:flex;align-items:center;justify-content:center;
+  width:42px;height:42px;border-radius:12px;
+  background:#2f8be0;color:#fff;font-weight:800;letter-spacing:.02em;
 }
-nav a{
-  padding:6px 14px;border-radius:999px;
-  text-decoration:none;font-weight:600;color:#0f4c8a;
+.brand strong{display:block;font-size:1.02rem;line-height:1.25}
+.brand small{display:block;color:#a9c8e8;font-size:.8rem}
+
+#side-nav{display:flex;flex-direction:column;gap:4px}
+#side-nav a{
+  display:block;padding:10px 14px;border-radius:10px;
+  color:#cfe3f7;text-decoration:none;font-weight:600;
+  border-left:3px solid transparent;
 }
-nav a:hover{background:#e0eefb}
+#side-nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+#side-nav a.active{background:rgba(47,139,224,.28);color:#fff;border-left-color:#7fc0ff}
+
+.databox{
+  margin-top:auto;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;padding:14px;
+}
+.databox label{margin:0 0 10px;color:#e6f0fb;font-size:.92rem}
+.databox select{margin-top:6px}
+.databox button{width:100%;margin:4px 0 0;background:#2f8be0}
+.databox button:hover{background:#1f7fd0}
+.databox-note{margin:10px 0 0;font-size:.8rem;color:#a9c8e8;line-height:1.5}
+
+/* ----- 공통 요소 ----- */
 a{color:#1565c0}
-
-/* ----- 본문 카드 ----- */
-main{max-width:1120px;margin:auto;padding:24px}
 section{
   background:#fff;
   border:1px solid #d3e6f6;
-  border-radius:14px;
-  box-shadow:0 2px 10px rgba(21,101,192,.07);
+  border-radius:16px;
+  box-shadow:0 2px 12px rgba(21,101,192,.07);
   margin-bottom:24px;padding:28px;
-  scroll-margin-top:72px;
 }
-h2{margin-top:0;color:#0f3a66;font-size:1.45rem;letter-spacing:-.01em}
-h3{color:#0f3a66;margin:30px 0 8px;font-size:1.12rem}
+h2{margin:28px 0 8px;color:#0f3a66;font-size:1.4rem;letter-spacing:-.01em}
+section>h2:first-child,.overview-body>h2:first-child{margin-top:0}
+h3{color:#0f3a66;margin:30px 0 8px;font-size:1.1rem}
 
 label{display:block;margin:15px 0;font-weight:600;color:#1d3b5c}
 input,select{
@@ -77,16 +95,44 @@ ul.note{padding-left:20px}
 ul.note li{margin:4px 0}
 
 /* ----- 상태 표시 ----- */
-#status{background:#e3f1fd;padding:14px;border-radius:8px}
-.loading-status{background:#fff;border:1px solid #d3e6f6;border-radius:12px;padding:12px 20px;margin-bottom:24px;box-shadow:0 2px 10px rgba(21,101,192,.07)}
-.loading-status #status{margin:0;background:transparent;padding:6px 0}
+.loading-status{background:#fff;border:1px solid #d3e6f6;border-radius:12px;padding:12px 20px;margin-bottom:24px;box-shadow:0 2px 12px rgba(21,101,192,.07)}
+.loading-status #status{margin:0;background:transparent;padding:6px 0;color:#1d3b5c}
 .loading-status details{font-size:.9rem;color:#4d6783}
 [role=status]{color:#1d3b5c}
 
-.section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-.section-heading h2{margin:0}
-.section-heading label{margin:0;min-width:240px}
-.section-heading button{margin:0;white-space:nowrap}
+.need-data{background:#fff6e8;border:1px solid #f3d3a8;color:#7a4a12;padding:10px 14px;border-radius:10px;font-size:.93rem}
+body.data-ready .need-data{display:none}
+
+/* ----- 개요 화면 ----- */
+#overview{padding:0;overflow:hidden}
+.hero{
+  padding:38px 34px 34px;color:#fff;
+  background:#1565c0;
+  background-image:linear-gradient(135deg,#0f4c8a 0%,#1f7fd0 100%);
+}
+.hero h1{font-size:clamp(1.6rem,3.6vw,2.4rem);line-height:1.3;margin:8px 0 12px;letter-spacing:-.01em}
+.hero p{margin:0}
+#subtitle{display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.18);font-size:.88rem;font-weight:600;letter-spacing:.02em}
+#lead{color:#e6f2fc;max-width:760px}
+.overview-body{padding:28px 34px 34px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:14px 0 6px}
+.kpi{padding:18px;background:#eef7ff;border:1px solid #d3e6f6;border-radius:12px}
+.kpi span{display:block;font-size:.88rem;color:#4d6783;line-height:1.5}
+.kpi strong{display:block;margin-top:6px;font-size:2rem;line-height:1.2;color:#c9551a}
+
+.qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:12px}
+.qcard{
+  display:flex;flex-direction:column;justify-content:space-between;gap:14px;
+  padding:18px;border:1px solid #d3e6f6;border-radius:12px;background:#fff;
+  text-decoration:none;color:#16324f;
+  transition:box-shadow .15s,transform .15s,border-color .15s;
+}
+.qcard b{line-height:1.5}
+.qcard span{color:#1565c0;font-weight:600;font-size:.92rem}
+.qcard:hover{border-color:#7fb3e6;box-shadow:0 6px 18px rgba(21,101,192,.14);transform:translateY(-2px)}
+.steps{padding-left:22px}
+.steps li{margin:6px 0}
 
 /* ----- 표 ----- */
 .scroll{overflow:auto;max-height:460px;border:1px solid #e1edf8;border-radius:10px}
@@ -112,11 +158,17 @@ caption{text-align:left;padding:12px;color:#33506f;font-weight:600}
 #basket button{font-size:.85rem;padding:5px 12px;margin:0}
 
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f7fc;padding:15px;border-radius:8px}
-footer{text-align:center;padding:24px;color:#4d6783;font-size:.9rem}
+footer{text-align:center;padding:18px;color:#4d6783;font-size:.9rem}
 
-@media(max-width:600px){
-  main{padding:12px}
+/* ----- 좁은 화면: 사이드바가 위쪽 메뉴로 ----- */
+@media(max-width:860px){
+  .app{flex-direction:column}
+  .sidebar{position:static;width:auto;flex:none;height:auto;padding:14px;gap:14px}
+  #side-nav{flex-direction:row;flex-wrap:wrap;gap:4px}
+  #side-nav a{padding:8px 12px;border-left:0}
+  .databox{margin-top:0}
+  .inner{padding:14px}
   section{padding:18px}
-  nav{gap:2px;padding:8px 12px}
-  nav a{padding:6px 10px}
+  .hero{padding:26px 20px}
+  .overview-body{padding:20px}
 }

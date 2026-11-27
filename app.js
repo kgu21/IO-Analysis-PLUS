@@ -27,10 +27,10 @@ async function load(buffer,label){
   $('sheet').replaceChildren(...info.sheets.map(s=>{const o=text('option',s);o.value=s;return o;}));
   $('validation').textContent=label+' · '+sectors.length+'개 부문\n'+JSON.stringify(info.residuals,null,2)+'\n최대 절대 잔차: 허용값 1e-8 미만';
   $('subtitle').textContent='2023 · 생산자가격 · '+label;
-  $('lead').textContent=info.sheets.length+'개 원자료 시트 탐색, '+sectors.length+'개 부문 수요충격 분석, 수요 항목별 분석, 전·후방 연쇄효과 분석';
   $('level-now').textContent=label+' ('+sectors.length+'개 부문)';
   $('download').textContent='전체 '+sectors.length+'개 산업 CSV 다운로드';
   lock(false);
+  document.body.classList.add('data-ready');
   await explore();
   await loadStructure();
   await loadDemand();
@@ -164,7 +164,7 @@ async function loadComparison(){
   for(const id of ['cmp-metric','cmp-png','cmp-csv','cmp-search','cmp-sector','cmp-chain-csv'])$(id).disabled=false;
   $('cmp-search').value='';cmpFilterSectors();
   $('cmp-status').textContent='분류 비교 자료 준비 완료 · '+LEVELS.map(k=>cmp.levels[k].label+' '+cmp.levels[k].sectors.length+'개').join(' · ');
-  renderCompare();renderChain();
+  renderCompare();renderChain();renderOverview();
  }catch(e){$('cmp-status').textContent='분류 비교 자료를 불러오지 못했습니다: '+e.message;}
 }
 function cmpItemRows(){
@@ -222,6 +222,37 @@ $('cmp-png').onclick=()=>{if(cmpSvgText)savePng(cmpSvgText,cmpSvgSize[0],cmpSvgS
 $('cmp-csv').onclick=()=>{if(!cmp)return;const m=$('cmp-metric').value||'coefImportIntermediate';saveCsv([['항목',...LEVELS.map(k=>cmp.levels[k].label+'_'+METRIC_LABEL[m])],...cmpItemRows().map(r=>[r.name,...r.vals])],'io-2023-compare-items-'+m+'.csv');};
 $('cmp-chain-csv').onclick=()=>{if(!cmp)return;const rows=chainRows();if(!rows.length)return;saveCsv([['분류','코드','산업명','생산유발계수','수입유발계수','부가가치유발계수','영향력계수','감응도계수'],...rows.map(r=>[r.level,r.code,r.name,r.production,r.imports,r.valueAdded,r.influence,r.sensitivity])],'io-2023-compare-'+$('cmp-sector').value+'.csv');};
 loadComparison();
+
+
+// ---- 개요 화면 수치 ----
+function renderOverview(){
+ if(!cmp)return;
+ const get=(k,c)=>cmp.levels[k].items.find(i=>i.code===c);
+ const ex=get('basic','9140'),co=get('basic','9111'),exL=get('large','9140');
+ if(ex&&co&&exL){
+  $('kpi-export').textContent=pct(ex.coefImportIntermediate);
+  $('kpi-consume').textContent=pct(co.coefImportIntermediate);
+  $('kpi-gap').textContent=pct(exL.coefImportIntermediate)+' → '+pct(ex.coefImportIntermediate);
+ }
+}
+
+// ---- 화면 전환 (사이드 메뉴) ----
+const PANELS=['overview','explorer','simulation','demand','compare','structure'];
+function showPanel(id,push){
+ if(!PANELS.includes(id))id='overview';
+ for(const p of PANELS)$(p).hidden=(p!==id);
+ for(const link of document.querySelectorAll('#side-nav a'))link.classList.toggle('active',link.getAttribute('href')==='#'+id);
+ window.scrollTo(0,0);
+ if(push!==false)history.replaceState(null,'','#'+id);
+}
+document.addEventListener('click',e=>{
+ const a=e.target&&e.target.closest?e.target.closest('a[href^="#"]'):null;
+ if(!a)return;
+ const id=a.getAttribute('href').slice(1);
+ if(PANELS.includes(id)){e.preventDefault();showPanel(id);}
+});
+window.addEventListener('hashchange',()=>showPanel(location.hash.slice(1),false));
+showPanel(location.hash.slice(1),false);
 
 // ---- 분류별 엑셀 불러오기 ----
 async function loadSelected(){
