@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>IO-Analysis-PLUS: 2023 산업연관표 분석 웹앱</title><link href="./style.css" rel="stylesheet"/><script defer src="./app.js"></script></head>
 <body>
-<header><p id="subtitle">2023 · 생산자가격 · 분류를 선택해 불러오세요</p><h1>과제물1: 산업연관표분석 웹앱</h1><p id="lead">대분류·중분류·소분류·기본부문 투입산출표 탐색, 수요충격 시뮬레이션, 수요 항목별 수입·부가가치 분석, 전·후방 연쇄효과 분석</p></header>
-<nav aria-label="주요 메뉴"><a href="#explorer">원자료 탐색</a><a href="#simulation">시뮬레이터</a><a href="#demand">수요 항목별 분석</a><a href="#structure">산업 구조 분석</a></nav>
+<header><p id="subtitle">2023 · 생산자가격 · 분류를 선택해 불러오세요</p><h1>과제물1: 산업연관표분석 웹앱</h1><p id="lead">대분류·중분류·소분류·기본부문 투입산출표 탐색, 수요충격 시뮬레이션, 수요 항목별 수입·부가가치 분석, 분류 수준별 비교, 전·후방 연쇄효과 분석</p></header>
+<nav aria-label="주요 메뉴"><a href="#explorer">원자료 탐색</a><a href="#simulation">시뮬레이터</a><a href="#demand">수요 항목별 분석</a><a href="#compare">분류 비교</a><a href="#structure">산업 구조 분석</a></nav>
 <main>
 <aside aria-label="분석 준비 상태" class="loading-status"><p id="status" role="status">분류를 고르고 "불러오기" 버튼을 눌러 자료를 불러오세요. (처음에는 Python 환경 준비로 시간이 걸릴 수 있습니다.)</p><details><summary>계수 검증 결과</summary><pre id="validation">아직 자료를 불러오지 않았습니다.</pre></details></aside>
 
@@ -27,7 +27,22 @@
 <button disabled id="demand-detail-csv" type="button">선택 항목 산업별 CSV</button>
 <div class="scroll"><table><caption id="demand-detail-caption">산업별 유발액 — 백만원</caption><thead><tr><th>코드</th><th>산업</th><th>생산유발액</th><th>수입유발액</th><th>부가가치유발액</th></tr></thead><tbody id="demand-detail-rows"></tbody></table></div></section>
 
-<section id="structure"><h2>4. 산업 구조 분석 (유발계수·전후방 연쇄효과)</h2>
+<section id="compare"><h2>4. 분류 수준별 비교: 거칠게 보면 결과가 달라질까</h2>
+<p>대분류, 중분류, 소분류, 기본부문 네 가지 투입산출표로 같은 분석을 한 결과를 나란히 비교합니다. 분류가 거칠수록 여러 산업이 하나로 합쳐져 개별 산업의 특성이 평균에 묻힐 수 있습니다. 이 섹션은 자료를 따로 불러오지 않아도 바로 사용할 수 있습니다.</p>
+<p id="cmp-status" role="status">비교 자료를 불러오는 중…</p>
+<h3>가. 수요 항목별 계수를 분류별로 비교</h3>
+<label>비교할 계수<select disabled id="cmp-metric"><option value="coefImportIntermediate">수입(중간재)유발계수 — 해외로 새는 몫</option><option value="coefValueAdded">부가가치유발계수 — 국내에 남는 몫</option><option value="coefProduction">생산유발계수</option></select></label>
+<div class="scroll" id="cmp-chart" aria-label="분류별 수요 항목 계수 비교 차트"></div>
+<button disabled id="cmp-png" type="button">차트 PNG 저장</button><button disabled id="cmp-csv" type="button">비교표 CSV</button>
+<div class="scroll"><table><caption id="cmp-caption">분류별 계수 (국산 최종수요 1원당 원)</caption><thead><tr><th>항목</th><th>대분류</th><th>중분류</th><th>소분류</th><th>기본부문</th><th>기본부문 − 대분류</th></tr></thead><tbody id="cmp-rows"></tbody></table></div>
+<h3>나. 같은 산업을 분류별로 비교</h3>
+<p>기본부문 산업을 고르면, 그 산업이 속한 소분류·중분류·대분류 산업의 계수를 함께 보여줍니다. 상위 분류의 값은 속한 여러 산업의 평균적인 특성입니다. 계수는 모두 국산 최종수요 1원당 비율이며, 수입유발계수는 수입 중간재 기준입니다.</p>
+<label>산업 검색<input disabled id="cmp-search" placeholder="기본부문 산업 이름 또는 코드"/></label>
+<label>기본부문 산업<select disabled id="cmp-sector"></select></label>
+<button disabled id="cmp-chain-csv" type="button">산업별 비교 CSV</button>
+<div class="scroll"><table><caption id="cmp-chain-caption">산업을 선택하면 표시됩니다.</caption><thead><tr><th>분류</th><th>코드</th><th>산업</th><th>생산유발</th><th>수입유발</th><th>부가가치유발</th><th>영향력</th><th>감응도</th></tr></thead><tbody id="cmp-chain-rows"></tbody></table></div></section>
+
+<section id="structure"><h2>5. 산업 구조 분석 (유발계수·전후방 연쇄효과)</h2>
 <p>생산유발계수표의 열합·행합으로 산업별 파급력을 비교합니다. 단위는 모두 비율(원/원)입니다.</p>
 <ul class="note"><li><strong>생산유발계수</strong>: 해당 산업 최종수요 1원 증가 시 전 산업에 유발되는 생산액(열합)</li><li><strong>수입유발계수·부가가치유발계수</strong>: 같은 방식으로 유발되는 수입액·부가가치액(열합)</li><li><strong>영향력계수(후방연쇄)</strong>: 열합 ÷ 열합의 전체 평균. 1보다 크면 다른 산업에 미치는 파급이 평균 이상</li><li><strong>감응도계수(전방연쇄)</strong>: 행합 ÷ 행합의 전체 평균. 1보다 크면 다른 산업 수요 증가에 평균 이상 반응</li></ul>
 <label>유형 필터<select disabled id="kind-filter"><option value="">전체</option><option>전·후방 연쇄 모두 강함</option><option>후방 연쇄 강함(영향력 우위)</option><option>전방 연쇄 강함(감응도 우위)</option><option>전·후방 연쇄 모두 약함</option></select></label>

@@ -125,14 +125,88 @@ function renderDemandDetail(){
 $('demand-item').onchange=renderDemandDetail;$('demand-sort').onchange=renderDemandDetail;
 $('demand-csv').onclick=()=>{if(!demandData)return;saveCsv([['항목','국산최종수요_백만원','수입최종수요_백만원','생산유발액_백만원','수입유발액_백만원','부가가치유발액_백만원','생산유발계수','수입중간재유발계수','부가가치유발계수','공표수입유발계수'],...demandData.items.map(i=>[shortName(i.name),i.domestic,i.imported,i.production,i.imports,i.valueAdded,i.coefProduction,i.coefImportIntermediate,i.coefValueAdded,i.coefImportPublished])],'io-2023-'+currentLabel+'-demand-items.csv');};
 $('demand-detail-csv').onclick=()=>{if(!demandData)return;const code=$('demand-item').value,item=demandData.items.find(i=>i.code===code);if(!item)return;saveCsv([['산업코드','산업명','생산유발액_백만원','수입유발액_백만원','부가가치유발액_백만원'],...demandDetailRows().map(r=>[r.code,r.name,r.production,r.imports,r.valueAdded])],'io-2023-'+currentLabel+'-'+shortName(item.name).replaceAll(' ','')+'-detail.csv');};
-$('demand-png').onclick=()=>{
- if(!demandSvgText)return;const [w,h]=demandSvgSize;
- const img=new Image(),url=URL.createObjectURL(new Blob([demandSvgText],{type:'image/svg+xml;charset=utf-8'}));
+function savePng(svgText,w,h,name){
+ const img=new Image(),url=URL.createObjectURL(new Blob([svgText],{type:'image/svg+xml;charset=utf-8'}));
  img.onload=()=>{const c=document.createElement('canvas');c.width=w*2;c.height=h*2;const x=c.getContext('2d');x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
-  c.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='io-2023-'+currentLabel+'-demand-chart.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);},'image/png');};
+  c.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);},'image/png');};
  img.onerror=()=>{URL.revokeObjectURL(url);$('status').textContent='차트 이미지 저장에 실패했습니다.';};
  img.src=url;
-};
+}
+$('demand-png').onclick=()=>{if(demandSvgText)savePng(demandSvgText,demandSvgSize[0],demandSvgSize[1],'io-2023-'+currentLabel+'-demand-chart.png');};
+
+
+// ---- 4. 분류 수준별 비교 ----
+const LEVELS=['large','medium','small','basic'],LEVEL_COLOR={large:'#9fb7c9',medium:'#5c8fb0',small:'#2f6a8f',basic:'#123c52'};
+const METRIC_LABEL={coefImportIntermediate:'수입(중간재)유발계수',coefValueAdded:'부가가치유발계수',coefProduction:'생산유발계수'};
+let cmp=null, cmpIdx={}, cmpHier={}, cmpSvgText='', cmpSvgSize=[0,0];
+async function loadComparison(){
+ try{
+  const r=await fetch('./data/comparison.json');
+  if(!r.ok)throw Error('HTTP '+r.status);
+  cmp=await r.json();
+  for(const k of LEVELS)cmpIdx[k]=Object.fromEntries(cmp.levels[k].sectors.map(s=>[s.code,s]));
+  cmpHier=Object.fromEntries(cmp.hierarchy.map(h=>[h.basic,h]));
+  for(const id of ['cmp-metric','cmp-png','cmp-csv','cmp-search','cmp-sector','cmp-chain-csv'])$(id).disabled=false;
+  $('cmp-search').value='';cmpFilterSectors();
+  $('cmp-status').textContent='분류 비교 자료 준비 완료 · '+LEVELS.map(k=>cmp.levels[k].label+' '+cmp.levels[k].sectors.length+'개').join(' · ');
+  renderCompare();renderChain();
+ }catch(e){$('cmp-status').textContent='분류 비교 자료를 불러오지 못했습니다: '+e.message;}
+}
+function cmpItemRows(){
+ const m=$('cmp-metric').value||'coefImportIntermediate';
+ return cmp.levels.basic.items.map(i=>{const vals=LEVELS.map(k=>{const it=cmp.levels[k].items.find(x=>x.code===i.code);return it?it[m]:null;});return {code:i.code,name:shortName(i.name),vals};}).filter(r=>r.vals.every(v=>v!==null));
+}
+function cmpSvg(rows,m){
+ const W=780,left=170,right=60,top=96,gh=82,H=top+rows.length*gh+20,bw=W-left-right;
+ const maxv=m==='coefProduction'?2.5:1,ticks=[0,.25,.5,.75,1].map(t=>t*maxv);
+ let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img">';
+ s+='<rect width="'+W+'" height="'+H+'" fill="#ffffff"/>';
+ s+='<text x="16" y="26" font-size="16" font-weight="700" fill="#1c2b36" font-family="'+FONT+'">'+esc('분류 수준별 '+METRIC_LABEL[m]+' (국산 최종수요 1원당)')+'</text>';
+ s+='<text x="16" y="46" font-size="12" fill="#5a6b78" font-family="'+FONT+'">자료: 한국은행 2023년 산업연관표(연장표), 생산자가격</text>';
+ LEVELS.forEach((k,i)=>{const x=16+i*110;s+='<rect x="'+x+'" y="58" width="12" height="12" fill="'+LEVEL_COLOR[k]+'"/><text x="'+(x+18)+'" y="68" font-size="12" fill="#1c2b36" font-family="'+FONT+'">'+esc(cmp.levels[k].label)+'</text>';});
+ ticks.forEach(t=>{const x=left+t/maxv*bw;s+='<line x1="'+x.toFixed(1)+'" y1="'+(top-8)+'" x2="'+x.toFixed(1)+'" y2="'+(H-20)+'" stroke="#e1e8ee"/><text x="'+x.toFixed(1)+'" y="'+(top-14)+'" text-anchor="middle" font-size="11" fill="#5a6b78" font-family="'+FONT+'">'+t.toFixed(2)+'</text>';});
+ rows.forEach((r,gi)=>{const y=top+gi*gh;
+  s+='<text x="'+(left-10)+'" y="'+(y+36)+'" text-anchor="end" font-size="13" fill="#1c2b36" font-family="'+FONT+'"'+(r.code==='9190'?' font-weight="700"':'')+'>'+esc(r.name)+'</text>';
+  r.vals.forEach((v,i)=>{const w=Math.max(0,Math.min(v/maxv,1))*bw,by=y+i*17;
+   s+='<rect x="'+left+'" y="'+by+'" width="'+w.toFixed(1)+'" height="14" fill="'+LEVEL_COLOR[LEVELS[i]]+'"/><text x="'+(left+w+5).toFixed(1)+'" y="'+(by+11)+'" font-size="11" fill="#1c2b36" font-family="'+FONT+'">'+fmt4(v)+'</text>';});
+ });
+ s+='</svg>';
+ return [s,W,H];
+}
+function renderCompare(){
+ if(!cmp)return;
+ const m=$('cmp-metric').value||'coefImportIntermediate',rows=cmpItemRows();
+ $('cmp-caption').textContent='분류별 '+METRIC_LABEL[m]+' (국산 최종수요 1원당 원)';
+ $('cmp-rows').replaceChildren(...rows.map(r=>{const tr=document.createElement('tr');
+  [r.name,...r.vals.map(fmt4),(r.vals[3]-r.vals[0]>=0?'+':'')+fmt4(r.vals[3]-r.vals[0])].forEach(v=>tr.append(text('td',v)));return tr;}));
+ const [svg,W,H]=cmpSvg(rows,m);cmpSvgText=svg;cmpSvgSize=[W,H];
+ $('cmp-chart').innerHTML=svg.replace('width="'+W+'" height="'+H+'"','style="width:100%;max-width:'+W+'px;height:auto"');
+}
+function cmpFilterSectors(){
+ const q=$('cmp-search').value.trim(),prev=$('cmp-sector').value;
+ options($('cmp-sector'),cmp.levels.basic.sectors.filter(s=>(s.code+' '+s.name).includes(q)));
+ if(prev&&[...$('cmp-sector').options].some(o=>o.value===prev))$('cmp-sector').value=prev;
+}
+function chainRows(){
+ const code=$('cmp-sector').value,h=cmpHier[code];if(!h)return [];
+ return LEVELS.map(k=>{const s=cmpIdx[k][h[k]];return {level:cmp.levels[k].label,...s};});
+}
+function renderChain(){
+ if(!cmp)return;
+ const rows=chainRows();
+ if(!rows.length){$('cmp-chain-rows').replaceChildren();$('cmp-chain-caption').textContent='일치하는 산업이 없습니다.';return;}
+ const last=rows[rows.length-1];
+ $('cmp-chain-caption').textContent=last.code+' '+last.name+' — 대분류에서 기본부문까지 (국산 최종수요 1원당)';
+ $('cmp-chain-rows').replaceChildren(...rows.map(r=>{const tr=document.createElement('tr');
+  [r.level,r.code,r.name,fmt4(r.production),fmt4(r.imports),fmt4(r.valueAdded),fmt4(r.influence),fmt4(r.sensitivity)].forEach(v=>tr.append(text('td',v)));return tr;}));
+}
+$('cmp-metric').onchange=renderCompare;
+$('cmp-search').oninput=()=>{cmpFilterSectors();renderChain();};
+$('cmp-sector').onchange=renderChain;
+$('cmp-png').onclick=()=>{if(cmpSvgText)savePng(cmpSvgText,cmpSvgSize[0],cmpSvgSize[1],'io-2023-compare-'+($('cmp-metric').value||'metric')+'.png');};
+$('cmp-csv').onclick=()=>{if(!cmp)return;const m=$('cmp-metric').value||'coefImportIntermediate';saveCsv([['항목',...LEVELS.map(k=>cmp.levels[k].label+'_'+METRIC_LABEL[m])],...cmpItemRows().map(r=>[r.name,...r.vals])],'io-2023-compare-items-'+m+'.csv');};
+$('cmp-chain-csv').onclick=()=>{if(!cmp)return;const rows=chainRows();if(!rows.length)return;saveCsv([['분류','코드','산업명','생산유발계수','수입유발계수','부가가치유발계수','영향력계수','감응도계수'],...rows.map(r=>[r.level,r.code,r.name,r.production,r.imports,r.valueAdded,r.influence,r.sensitivity])],'io-2023-compare-'+$('cmp-sector').value+'.csv');};
+loadComparison();
 
 // ---- 분류별 엑셀 불러오기 ----
 async function loadSelected(){
