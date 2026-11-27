@@ -51,7 +51,22 @@ function renderBasket(){$('basket').replaceChildren(...basket.map((s,i)=>{const 
 $('scenario').onsubmit=e=>{e.preventDefault();const amount=Number($('amount').value),s=sectors.find(s=>s.code===$('sector').value);if(!s||!Number.isFinite(amount)||amount<=0){$('sim-status').textContent='산업과 양의 증가액을 확인하세요.';return;}basket.push({...s,amount});invalidate();renderBasket();};
 $('clear').onclick=()=>{basket=[];invalidate();renderBasket();};
 $('run').onclick=async()=>{if(!basket.length){$('sim-status').textContent='시나리오를 먼저 추가하세요.';return;}const snapshot=basket.map(s=>({...s}));$('run').disabled=true;$('sim-status').textContent='계산 중…';try{const r=await call('simulate',snapshot);if(JSON.stringify(snapshot)!==JSON.stringify(basket)){$('sim-status').textContent='입력이 변경되었습니다. 다시 계산하세요.';return;}result=r;renderResult();$('sim-status').textContent='계산 완료. 아래 결과는 현재 시나리오('+currentLabel+')에 대응합니다.';}catch(e){invalidate();$('sim-status').textContent='계산 실패: '+e.message;}finally{$('run').disabled=false;}};
-function renderResult(){$('results').hidden=false;$('cards').replaceChildren(...[['수요 증가액',result.demand],['생산유발액',result.production],['수입유발액',result.imports],['부가가치유발액',result.valueAdded]].map(([title,v])=>{const d=text('div',title);d.className='card';d.append(text('strong',fmt(v)),text('span','백만원'));return d;}),(()=>{const d=text('div','생산유발승수');d.className='card';d.append(text('strong',fmt4(result.multiplier)),text('span','배 (생산유발액 ÷ 수요 증가액)'));return d;})());const max=Math.max(...result.rows.map(r=>r.production),1);$('bars').replaceChildren(...result.rows.slice(0,15).map(r=>{const d=text('div',r.name+' · '+fmt(r.production)+'백만원');d.className='bar';const t=document.createElement('div');t.className='track';const f=document.createElement('div');f.className='fill';f.style.width=Math.max(0,r.production/max*100)+'%';t.append(f);d.append(t);return d;}));$('result-rows').replaceChildren(...result.rows.map(r=>{const tr=document.createElement('tr');[r.code,r.name,fmt(r.production),fmt(r.imports),fmt(r.valueAdded)].forEach(v=>tr.append(text('td',v)));return tr;}));}
+function renderResult(){$('results').hidden=false;$('cards').replaceChildren(...[['수요 증가액',result.demand],['생산유발액',result.production],['수입유발액',result.imports],['부가가치유발액',result.valueAdded]].map(([title,v])=>{const d=text('div',title);d.className='card';d.append(text('strong',fmt(v)),text('span','백만원'));return d;}),(()=>{const d=text('div','생산유발승수');d.className='card';d.append(text('strong',fmt4(result.multiplier)),text('span','배 (생산유발액 ÷ 수요 증가액)'));return d;})());const max=Math.max(...result.rows.map(r=>r.production),1);$('bars').replaceChildren(...result.rows.slice(0,15).map(r=>{const d=text('div',r.name+' · '+fmt(r.production)+'백만원');d.className='bar';const t=document.createElement('div');t.className='track';const f=document.createElement('div');f.className='fill';f.style.width=Math.max(0,r.production/max*100)+'%';t.append(f);d.append(t);return d;}));$('result-rows').replaceChildren(...result.rows.map(r=>{const tr=document.createElement('tr');[r.code,r.name,fmt(r.production),fmt(r.imports),fmt(r.valueAdded)].forEach(v=>tr.append(text('td',v)));return tr;}));renderImportBars();}
+let importBars=null;
+function renderImportBars(){
+ if(!importBars){
+  const h=text('h3','수입유발액 상위 15개 제품(산업)'),d=document.createElement('div');
+  d.id='bars-import';h.id='bars-import-title';
+  $('bars').after(h,d);importBars=d;
+ }
+ const top=[...result.rows].sort((a,b)=>b.imports-a.imports).slice(0,15),max=Math.max(...top.map(r=>r.imports),1);
+ importBars.replaceChildren(...top.map(r=>{
+  const share=result.imports>0?' ('+(r.imports/result.imports*100).toFixed(1)+'%)':'';
+  const d=text('div',r.name+' · '+fmt(r.imports)+'백만원'+share);d.className='bar';
+  const t=document.createElement('div');t.className='track';const f=document.createElement('div');f.className='fill';
+  f.style.width=Math.max(0,r.imports/max*100)+'%';f.style.background='#d9822b';t.append(f);d.append(t);return d;}));
+ importBars.title='해당 산업 생산물(제품)의 수입 증가분이며, 괄호는 전체 수입유발액에서 차지하는 비중입니다.';
+}
 function csvCell(v){let s=String(v);if(/^[=+@-]/.test(s)&&typeof v!=='number')s="'"+s;return '"'+s.replaceAll('"','""')+'"';}
 function saveCsv(rows,name){const url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('download').onclick=()=>{if(!result)return;saveCsv([['산업코드','산업명','생산유발액_백만원','수입유발액_백만원','부가가치유발액_백만원'],...result.rows.map(r=>[r.code,r.name,r.production,r.imports,r.valueAdded])],'io-2023-'+currentLabel+'-results.csv');};
