@@ -64,7 +64,7 @@ function renderImportBars(){
   const share=result.imports>0?' ('+(r.imports/result.imports*100).toFixed(1)+'%)':'';
   const d=text('div',r.name+' · '+fmt(r.imports)+'백만원'+share);d.className='bar';
   const t=document.createElement('div');t.className='track';const f=document.createElement('div');f.className='fill';
-  f.style.width=Math.max(0,r.imports/max*100)+'%';f.style.background='#d9822b';t.append(f);d.append(t);return d;}));
+  f.style.width=Math.max(0,r.imports/max*100)+'%';f.style.background=COL_IM;t.append(f);d.append(t);return d;}));
  importBars.title='해당 산업 생산물(제품)의 수입 증가분이며, 괄호는 전체 수입유발액에서 차지하는 비중입니다.';
 }
 function csvCell(v){let s=String(v);if(/^[=+@-]/.test(s)&&typeof v!=='number')s="'"+s;return '"'+s.replaceAll('"','""')+'"';}
@@ -80,7 +80,7 @@ $('struct-download').onclick=()=>{const list=visibleStructure();if(!list.length)
 
 
 // ---- 3. 수요 항목별 분석 ----
-const FONT="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif",COL_VA='#1b7f79',COL_IM='#d9822b';
+const FONT="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif",COL_VA='#2a7bc4',COL_IM='#c9551a';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const shortName=n=>String(n).replace(/\s*\(.*$/,'').trim();
 const pct=x=>(x*100).toFixed(1)+'%';
@@ -151,7 +151,7 @@ $('demand-png').onclick=()=>{if(demandSvgText)savePng(demandSvgText,demandSvgSiz
 
 
 // ---- 4. 분류 수준별 비교 ----
-const LEVELS=['large','medium','small','basic'],LEVEL_COLOR={large:'#9fb7c9',medium:'#5c8fb0',small:'#2f6a8f',basic:'#123c52'};
+const LEVELS=['large','medium','small','basic'],LEVEL_COLOR={large:'#a9d3f5',medium:'#5aa9e6',small:'#2a7bc4',basic:'#123f7a'};
 const METRIC_LABEL={coefImportIntermediate:'수입(중간재)유발계수',coefValueAdded:'부가가치유발계수',coefProduction:'생산유발계수'};
 let cmp=null, cmpIdx={}, cmpHier={}, cmpSvgText='', cmpSvgSize=[0,0];
 async function loadComparison(){
